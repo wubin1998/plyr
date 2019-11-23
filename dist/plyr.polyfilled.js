@@ -2,7 +2,7 @@ typeof navigator === "object" && (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define('Plyr', factory) :
   (global = global || self, global.Plyr = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   // Polyfill for creating CustomEvents on IE9/10/11
   // code pulled from:
@@ -62,7 +62,6 @@ typeof navigator === "object" && (function (global, factory) {
   	return module = { exports: {} }, fn(module, module.exports), module.exports;
   }
 
-  var O = 'object';
   var check = function (it) {
     return it && it.Math == Math && it;
   };
@@ -70,10 +69,10 @@ typeof navigator === "object" && (function (global, factory) {
   // https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
   var global_1 =
     // eslint-disable-next-line no-undef
-    check(typeof globalThis == O && globalThis) ||
-    check(typeof window == O && window) ||
-    check(typeof self == O && self) ||
-    check(typeof commonjsGlobal == O && commonjsGlobal) ||
+    check(typeof globalThis == 'object' && globalThis) ||
+    check(typeof window == 'object' && window) ||
+    check(typeof self == 'object' && self) ||
+    check(typeof commonjsGlobal == 'object' && commonjsGlobal) ||
     // eslint-disable-next-line no-new-func
     Function('return this')();
 
@@ -229,32 +228,34 @@ typeof navigator === "object" && (function (global, factory) {
   	f: f$2
   };
 
-  var hide = descriptors ? function (object, key, value) {
+  var createNonEnumerableProperty = descriptors ? function (object, key, value) {
     return objectDefineProperty.f(object, key, createPropertyDescriptor(1, value));
   } : function (object, key, value) {
     object[key] = value;
     return object;
   };
 
+  var isPure = false;
+
   var setGlobal = function (key, value) {
     try {
-      hide(global_1, key, value);
+      createNonEnumerableProperty(global_1, key, value);
     } catch (error) {
       global_1[key] = value;
     } return value;
   };
 
-  var isPure = false;
-
-  var shared = createCommonjsModule(function (module) {
   var SHARED = '__core-js_shared__';
   var store = global_1[SHARED] || setGlobal(SHARED, {});
 
+  var sharedStore = store;
+
+  var shared = createCommonjsModule(function (module) {
   (module.exports = function (key, value) {
-    return store[key] || (store[key] = value !== undefined ? value : {});
+    return sharedStore[key] || (sharedStore[key] = value !== undefined ? value : {});
   })('versions', []).push({
-    version: '3.1.3',
-    mode: 'global',
+    version: '3.4.2',
+    mode:  'global',
     copyright: '© 2019 Denis Pushkarev (zloirock.ru)'
   });
   });
@@ -297,25 +298,25 @@ typeof navigator === "object" && (function (global, factory) {
   };
 
   if (nativeWeakMap) {
-    var store = new WeakMap$2();
-    var wmget = store.get;
-    var wmhas = store.has;
-    var wmset = store.set;
+    var store$1 = new WeakMap$2();
+    var wmget = store$1.get;
+    var wmhas = store$1.has;
+    var wmset = store$1.set;
     set = function (it, metadata) {
-      wmset.call(store, it, metadata);
+      wmset.call(store$1, it, metadata);
       return metadata;
     };
     get = function (it) {
-      return wmget.call(store, it) || {};
+      return wmget.call(store$1, it) || {};
     };
     has$1 = function (it) {
-      return wmhas.call(store, it);
+      return wmhas.call(store$1, it);
     };
   } else {
     var STATE = sharedKey('state');
     hiddenKeys[STATE] = true;
     set = function (it, metadata) {
-      hide(it, STATE, metadata);
+      createNonEnumerableProperty(it, STATE, metadata);
       return metadata;
     };
     get = function (it) {
@@ -348,7 +349,7 @@ typeof navigator === "object" && (function (global, factory) {
     var simple = options ? !!options.enumerable : false;
     var noTargetGet = options ? !!options.noTargetGet : false;
     if (typeof value == 'function') {
-      if (typeof key == 'string' && !has(value, 'name')) hide(value, 'name', key);
+      if (typeof key == 'string' && !has(value, 'name')) createNonEnumerableProperty(value, 'name', key);
       enforceInternalState(value).source = TEMPLATE.join(typeof key == 'string' ? key : '');
     }
     if (O === global_1) {
@@ -361,7 +362,7 @@ typeof navigator === "object" && (function (global, factory) {
       simple = true;
     }
     if (simple) O[key] = value;
-    else hide(O, key, value);
+    else createNonEnumerableProperty(O, key, value);
   // add fake Function#toString for correct work wrapped methods / constructors with methods like LoDash isNative
   })(Function.prototype, 'toString', function toString() {
     return typeof this == 'function' && getInternalState(this).source || functionToString.call(this);
@@ -401,7 +402,7 @@ typeof navigator === "object" && (function (global, factory) {
 
   // Helper for a popular repeating case of the spec:
   // Let integer be ? ToInteger(index).
-  // If integer < 0, let result be max((length + integer), 0); else let result be min(length, length).
+  // If integer < 0, let result be max((length + integer), 0); else let result be min(integer, length).
   var toAbsoluteIndex = function (index, length) {
     var integer = toInteger(index);
     return integer < 0 ? max(integer + length, 0) : min$1(integer, length);
@@ -565,7 +566,7 @@ typeof navigator === "object" && (function (global, factory) {
       }
       // add a flag to not completely full polyfills
       if (options.sham || (targetProperty && targetProperty.sham)) {
-        hide(sourceProperty, 'sham', true);
+        createNonEnumerableProperty(sourceProperty, 'sham', true);
       }
       // extend global
       redefine(target, key, sourceProperty, options);
@@ -577,6 +578,12 @@ typeof navigator === "object" && (function (global, factory) {
     // eslint-disable-next-line no-undef
     return !String(Symbol());
   });
+
+  var useSymbolAsUid = nativeSymbol
+    // eslint-disable-next-line no-undef
+    && !Symbol.sham
+    // eslint-disable-next-line no-undef
+    && typeof Symbol() == 'symbol';
 
   // `IsArray` abstract operation
   // https://tc39.github.io/ecma262/#sec-isarray
@@ -679,12 +686,15 @@ typeof navigator === "object" && (function (global, factory) {
   	f: f$5
   };
 
+  var WellKnownSymbolsStore = shared('wks');
   var Symbol$1 = global_1.Symbol;
-  var store$1 = shared('wks');
+  var createWellKnownSymbol = useSymbolAsUid ? Symbol$1 : uid;
 
   var wellKnownSymbol = function (name) {
-    return store$1[name] || (store$1[name] = nativeSymbol && Symbol$1[name]
-      || (nativeSymbol ? Symbol$1 : uid)('Symbol.' + name));
+    if (!has(WellKnownSymbolsStore, name)) {
+      if (nativeSymbol && has(Symbol$1, name)) WellKnownSymbolsStore[name] = Symbol$1[name];
+      else WellKnownSymbolsStore[name] = createWellKnownSymbol('Symbol.' + name);
+    } return WellKnownSymbolsStore[name];
   };
 
   var f$6 = wellKnownSymbol;
@@ -830,8 +840,7 @@ typeof navigator === "object" && (function (global, factory) {
   var getInternalState = internalState.getterFor(SYMBOL);
   var ObjectPrototype = Object[PROTOTYPE$1];
   var $Symbol = global_1.Symbol;
-  var JSON$1 = global_1.JSON;
-  var nativeJSONStringify = JSON$1 && JSON$1.stringify;
+  var $stringify = getBuiltIn('JSON', 'stringify');
   var nativeGetOwnPropertyDescriptor$1 = objectGetOwnPropertyDescriptor.f;
   var nativeDefineProperty$1 = objectDefineProperty.f;
   var nativeGetOwnPropertyNames$1 = objectGetOwnPropertyNamesExternal.f;
@@ -840,7 +849,7 @@ typeof navigator === "object" && (function (global, factory) {
   var ObjectPrototypeSymbols = shared('op-symbols');
   var StringToSymbolRegistry = shared('string-to-symbol-registry');
   var SymbolToStringRegistry = shared('symbol-to-string-registry');
-  var WellKnownSymbolsStore = shared('wks');
+  var WellKnownSymbolsStore$1 = shared('wks');
   var QObject = global_1.QObject;
   // Don't use setters in Qt Script, https://github.com/zloirock/core-js/issues/173
   var USE_SETTER = !QObject || !QObject[PROTOTYPE$1] || !QObject[PROTOTYPE$1].findChild;
@@ -983,7 +992,9 @@ typeof navigator === "object" && (function (global, factory) {
         redefine(ObjectPrototype, 'propertyIsEnumerable', $propertyIsEnumerable, { unsafe: true });
       }
     }
+  }
 
+  if (!useSymbolAsUid) {
     wrappedWellKnownSymbol.f = function (name) {
       return wrap(wellKnownSymbol(name), name);
     };
@@ -993,7 +1004,7 @@ typeof navigator === "object" && (function (global, factory) {
     Symbol: $Symbol
   });
 
-  $forEach(objectKeys(WellKnownSymbolsStore), function (name) {
+  $forEach(objectKeys(WellKnownSymbolsStore$1), function (name) {
     defineWellKnownSymbol(name);
   });
 
@@ -1052,34 +1063,41 @@ typeof navigator === "object" && (function (global, factory) {
 
   // `JSON.stringify` method behavior with symbols
   // https://tc39.github.io/ecma262/#sec-json.stringify
-  JSON$1 && _export({ target: 'JSON', stat: true, forced: !nativeSymbol || fails(function () {
-    var symbol = $Symbol();
-    // MS Edge converts symbol values to JSON as {}
-    return nativeJSONStringify([symbol]) != '[null]'
-      // WebKit converts symbol values to JSON as null
-      || nativeJSONStringify({ a: symbol }) != '{}'
-      // V8 throws on boxed symbols
-      || nativeJSONStringify(Object(symbol)) != '{}';
-  }) }, {
-    stringify: function stringify(it) {
-      var args = [it];
-      var index = 1;
-      var replacer, $replacer;
-      while (arguments.length > index) args.push(arguments[index++]);
-      $replacer = replacer = args[1];
-      if (!isObject(replacer) && it === undefined || isSymbol(it)) return; // IE8 returns string on undefined
-      if (!isArray(replacer)) replacer = function (key, value) {
-        if (typeof $replacer == 'function') value = $replacer.call(this, key, value);
-        if (!isSymbol(value)) return value;
-      };
-      args[1] = replacer;
-      return nativeJSONStringify.apply(JSON$1, args);
-    }
-  });
+  if ($stringify) {
+    var FORCED_JSON_STRINGIFY = !nativeSymbol || fails(function () {
+      var symbol = $Symbol();
+      // MS Edge converts symbol values to JSON as {}
+      return $stringify([symbol]) != '[null]'
+        // WebKit converts symbol values to JSON as null
+        || $stringify({ a: symbol }) != '{}'
+        // V8 throws on boxed symbols
+        || $stringify(Object(symbol)) != '{}';
+    });
+
+    _export({ target: 'JSON', stat: true, forced: FORCED_JSON_STRINGIFY }, {
+      // eslint-disable-next-line no-unused-vars
+      stringify: function stringify(it, replacer, space) {
+        var args = [it];
+        var index = 1;
+        var $replacer;
+        while (arguments.length > index) args.push(arguments[index++]);
+        $replacer = replacer;
+        if (!isObject(replacer) && it === undefined || isSymbol(it)) return; // IE8 returns string on undefined
+        if (!isArray(replacer)) replacer = function (key, value) {
+          if (typeof $replacer == 'function') value = $replacer.call(this, key, value);
+          if (!isSymbol(value)) return value;
+        };
+        args[1] = replacer;
+        return $stringify.apply(null, args);
+      }
+    });
+  }
 
   // `Symbol.prototype[@@toPrimitive]` method
   // https://tc39.github.io/ecma262/#sec-symbol.prototype-@@toprimitive
-  if (!$Symbol[PROTOTYPE$1][TO_PRIMITIVE]) hide($Symbol[PROTOTYPE$1], TO_PRIMITIVE, $Symbol[PROTOTYPE$1].valueOf);
+  if (!$Symbol[PROTOTYPE$1][TO_PRIMITIVE]) {
+    createNonEnumerableProperty($Symbol[PROTOTYPE$1], TO_PRIMITIVE, $Symbol[PROTOTYPE$1].valueOf);
+  }
   // `Symbol.prototype[@@toStringTag]` property
   // https://tc39.github.io/ecma262/#sec-symbol.prototype-@@tostringtag
   setToStringTag($Symbol, SYMBOL);
@@ -1139,7 +1157,7 @@ typeof navigator === "object" && (function (global, factory) {
   // Array.prototype[@@unscopables]
   // https://tc39.github.io/ecma262/#sec-array.prototype-@@unscopables
   if (ArrayPrototype[UNSCOPABLES] == undefined) {
-    hide(ArrayPrototype, UNSCOPABLES, objectCreate(null));
+    createNonEnumerableProperty(ArrayPrototype, UNSCOPABLES, objectCreate(null));
   }
 
   // add a key to Array.prototype[@@unscopables]
@@ -1190,7 +1208,9 @@ typeof navigator === "object" && (function (global, factory) {
   if (IteratorPrototype == undefined) IteratorPrototype = {};
 
   // 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
-  if (!has(IteratorPrototype, ITERATOR)) hide(IteratorPrototype, ITERATOR, returnThis);
+  if ( !has(IteratorPrototype, ITERATOR)) {
+    createNonEnumerableProperty(IteratorPrototype, ITERATOR, returnThis);
+  }
 
   var iteratorsCore = {
     IteratorPrototype: IteratorPrototype,
@@ -1277,11 +1297,11 @@ typeof navigator === "object" && (function (global, factory) {
     if (anyNativeIterator) {
       CurrentIteratorPrototype = objectGetPrototypeOf(anyNativeIterator.call(new Iterable()));
       if (IteratorPrototype$2 !== Object.prototype && CurrentIteratorPrototype.next) {
-        if (objectGetPrototypeOf(CurrentIteratorPrototype) !== IteratorPrototype$2) {
+        if ( objectGetPrototypeOf(CurrentIteratorPrototype) !== IteratorPrototype$2) {
           if (objectSetPrototypeOf) {
             objectSetPrototypeOf(CurrentIteratorPrototype, IteratorPrototype$2);
           } else if (typeof CurrentIteratorPrototype[ITERATOR$1] != 'function') {
-            hide(CurrentIteratorPrototype, ITERATOR$1, returnThis$2);
+            createNonEnumerableProperty(CurrentIteratorPrototype, ITERATOR$1, returnThis$2);
           }
         }
         // Set @@toStringTag to native iterators
@@ -1296,8 +1316,8 @@ typeof navigator === "object" && (function (global, factory) {
     }
 
     // define iterator
-    if (IterablePrototype[ITERATOR$1] !== defaultIterator) {
-      hide(IterablePrototype, ITERATOR$1, defaultIterator);
+    if ( IterablePrototype[ITERATOR$1] !== defaultIterator) {
+      createNonEnumerableProperty(IterablePrototype, ITERATOR$1, defaultIterator);
     }
     iterators[NAME] = defaultIterator;
 
@@ -1392,10 +1412,33 @@ typeof navigator === "object" && (function (global, factory) {
     else object[propertyKey] = value;
   };
 
+  var userAgent = getBuiltIn('navigator', 'userAgent') || '';
+
+  var process = global_1.process;
+  var versions = process && process.versions;
+  var v8 = versions && versions.v8;
+  var match, version;
+
+  if (v8) {
+    match = v8.split('.');
+    version = match[0] + match[1];
+  } else if (userAgent) {
+    match = userAgent.match(/Edge\/(\d+)/);
+    if (!match || match[1] >= 74) {
+      match = userAgent.match(/Chrome\/(\d+)/);
+      if (match) version = match[1];
+    }
+  }
+
+  var v8Version = version && +version;
+
   var SPECIES$1 = wellKnownSymbol('species');
 
   var arrayMethodHasSpeciesSupport = function (METHOD_NAME) {
-    return !fails(function () {
+    // We can't use this feature detection in V8 since it causes
+    // deoptimization and serious performance degradation
+    // https://github.com/zloirock/core-js/issues/677
+    return v8Version >= 51 || !fails(function () {
       var array = [];
       var constructor = array.constructor = {};
       constructor[SPECIES$1] = function () {
@@ -1441,6 +1484,13 @@ typeof navigator === "object" && (function (global, factory) {
   });
 
   var TO_STRING_TAG$1 = wellKnownSymbol('toStringTag');
+  var test = {};
+
+  test[TO_STRING_TAG$1] = 'z';
+
+  var toStringTagSupport = String(test) === '[object z]';
+
+  var TO_STRING_TAG$2 = wellKnownSymbol('toStringTag');
   // ES3 wrong here
   var CORRECT_ARGUMENTS = classofRaw(function () { return arguments; }()) == 'Arguments';
 
@@ -1452,34 +1502,27 @@ typeof navigator === "object" && (function (global, factory) {
   };
 
   // getting tag from ES6+ `Object.prototype.toString`
-  var classof = function (it) {
+  var classof = toStringTagSupport ? classofRaw : function (it) {
     var O, tag, result;
     return it === undefined ? 'Undefined' : it === null ? 'Null'
       // @@toStringTag case
-      : typeof (tag = tryGet(O = Object(it), TO_STRING_TAG$1)) == 'string' ? tag
+      : typeof (tag = tryGet(O = Object(it), TO_STRING_TAG$2)) == 'string' ? tag
       // builtinTag case
       : CORRECT_ARGUMENTS ? classofRaw(O)
       // ES3 arguments fallback
       : (result = classofRaw(O)) == 'Object' && typeof O.callee == 'function' ? 'Arguments' : result;
   };
 
-  var TO_STRING_TAG$2 = wellKnownSymbol('toStringTag');
-  var test = {};
-
-  test[TO_STRING_TAG$2] = 'z';
-
   // `Object.prototype.toString` method implementation
   // https://tc39.github.io/ecma262/#sec-object.prototype.tostring
-  var objectToString = String(test) !== '[object z]' ? function toString() {
+  var objectToString = toStringTagSupport ? {}.toString : function toString() {
     return '[object ' + classof(this) + ']';
-  } : test.toString;
-
-  var ObjectPrototype$2 = Object.prototype;
+  };
 
   // `Object.prototype.toString` method
   // https://tc39.github.io/ecma262/#sec-object.prototype.tostring
-  if (objectToString !== ObjectPrototype$2.toString) {
-    redefine(ObjectPrototype$2, 'toString', objectToString, { unsafe: true });
+  if (!toStringTagSupport) {
+    redefine(Object.prototype, 'toString', objectToString, { unsafe: true });
   }
 
   // `RegExp.prototype.flags` getter implementation
@@ -1661,14 +1704,21 @@ typeof navigator === "object" && (function (global, factory) {
       // Symbol-named RegExp methods call .exec
       var execCalled = false;
       var re = /a/;
-      re.exec = function () { execCalled = true; return null; };
 
       if (KEY === 'split') {
+        // We can't use real regex here since it causes deoptimization
+        // and serious performance degradation in V8
+        // https://github.com/zloirock/core-js/issues/306
+        re = {};
         // RegExp[@@split] doesn't call the regex's exec method, but first creates
         // a new one. We need to return the patched regex when creating the new one.
         re.constructor = {};
         re.constructor[SPECIES$3] = function () { return re; };
+        re.flags = '';
+        re[SYMBOL] = /./[SYMBOL];
       }
+
+      re.exec = function () { execCalled = true; return null; };
 
       re[SYMBOL]('');
       return !execCalled;
@@ -1705,7 +1755,7 @@ typeof navigator === "object" && (function (global, factory) {
         // 21.2.5.9 RegExp.prototype[@@search](string)
         : function (string) { return regexMethod.call(string, this); }
       );
-      if (sham) hide(RegExp.prototype[SYMBOL], 'sham', true);
+      if (sham) createNonEnumerableProperty(RegExp.prototype[SYMBOL], 'sham', true);
     }
   };
 
@@ -2080,7 +2130,7 @@ typeof navigator === "object" && (function (global, factory) {
     var CollectionPrototype = Collection && Collection.prototype;
     // some Chrome versions have non-configurable methods on DOMTokenList
     if (CollectionPrototype && CollectionPrototype.forEach !== arrayForEach) try {
-      hide(CollectionPrototype, 'forEach', arrayForEach);
+      createNonEnumerableProperty(CollectionPrototype, 'forEach', arrayForEach);
     } catch (error) {
       CollectionPrototype.forEach = arrayForEach;
     }
@@ -2096,15 +2146,17 @@ typeof navigator === "object" && (function (global, factory) {
     if (CollectionPrototype$1) {
       // some Chrome versions have non-configurable methods on DOMTokenList
       if (CollectionPrototype$1[ITERATOR$2] !== ArrayValues) try {
-        hide(CollectionPrototype$1, ITERATOR$2, ArrayValues);
+        createNonEnumerableProperty(CollectionPrototype$1, ITERATOR$2, ArrayValues);
       } catch (error) {
         CollectionPrototype$1[ITERATOR$2] = ArrayValues;
       }
-      if (!CollectionPrototype$1[TO_STRING_TAG$3]) hide(CollectionPrototype$1, TO_STRING_TAG$3, COLLECTION_NAME$1);
+      if (!CollectionPrototype$1[TO_STRING_TAG$3]) {
+        createNonEnumerableProperty(CollectionPrototype$1, TO_STRING_TAG$3, COLLECTION_NAME$1);
+      }
       if (domIterables[COLLECTION_NAME$1]) for (var METHOD_NAME in es_array_iterator) {
         // some Chrome versions have non-configurable methods on DOMTokenList
         if (CollectionPrototype$1[METHOD_NAME] !== es_array_iterator[METHOD_NAME]) try {
-          hide(CollectionPrototype$1, METHOD_NAME, es_array_iterator[METHOD_NAME]);
+          createNonEnumerableProperty(CollectionPrototype$1, METHOD_NAME, es_array_iterator[METHOD_NAME]);
         } catch (error) {
           CollectionPrototype$1[METHOD_NAME] = es_array_iterator[METHOD_NAME];
         }
@@ -2115,13 +2167,18 @@ typeof navigator === "object" && (function (global, factory) {
   var ITERATOR$3 = wellKnownSymbol('iterator');
 
   var nativeUrl = !fails(function () {
-    var url = new URL('b?e=1', 'http://a');
+    var url = new URL('b?a=1&b=2&c=3', 'http://a');
     var searchParams = url.searchParams;
+    var result = '';
     url.pathname = 'c%20d';
+    searchParams.forEach(function (value, key) {
+      searchParams['delete']('b');
+      result += key + value;
+    });
     return (isPure && !url.toJSON)
       || !searchParams.sort
-      || url.href !== 'http://a/c%20d?e=1'
-      || searchParams.get('e') !== '1'
+      || url.href !== 'http://a/c%20d?a=1&c=3'
+      || searchParams.get('c') !== '3'
       || String(new URLSearchParams('?a=1')) !== 'a=1'
       || !searchParams[ITERATOR$3]
       // throws in Edge
@@ -2130,7 +2187,11 @@ typeof navigator === "object" && (function (global, factory) {
       // not punycoded in Edge
       || new URL('http://тест').host !== 'xn--e1aybc'
       // not escaped in Chrome 62-
-      || new URL('http://a#б').hash !== '#%D0%B1';
+      || new URL('http://a#б').hash !== '#%D0%B1'
+      // fails in Chrome 66-
+      || result !== 'a1c3'
+      // throws in Safari
+      || new URL('http://x', undefined).host !== 'x';
   });
 
   var anInstance = function (it, Constructor, name) {
@@ -2210,13 +2271,14 @@ typeof navigator === "object" && (function (global, factory) {
     var mapping = mapfn !== undefined;
     var index = 0;
     var iteratorMethod = getIteratorMethod(O);
-    var length, result, step, iterator;
+    var length, result, step, iterator, next;
     if (mapping) mapfn = bindContext(mapfn, argumentsLength > 2 ? arguments[2] : undefined, 2);
     // if the target is not iterable or it's an array with the default iterator - use a simple case
     if (iteratorMethod != undefined && !(C == Array && isArrayIteratorMethod(iteratorMethod))) {
       iterator = iteratorMethod.call(O);
+      next = iterator.next;
       result = new C();
-      for (;!(step = iterator.next()).done; index++) {
+      for (;!(step = next.call(iterator)).done; index++) {
         createProperty(result, index, mapping
           ? callWithSafeIterationClosing(iterator, mapfn, [step.value, index], true)
           : step.value
@@ -2431,6 +2493,12 @@ typeof navigator === "object" && (function (global, factory) {
 
 
 
+
+
+
+
+  var $fetch = getBuiltIn('fetch');
+  var Headers = getBuiltIn('Headers');
   var ITERATOR$6 = wellKnownSymbol('iterator');
   var URL_SEARCH_PARAMS = 'URLSearchParams';
   var URL_SEARCH_PARAMS_ITERATOR = URL_SEARCH_PARAMS + 'Iterator';
@@ -2535,7 +2603,7 @@ typeof navigator === "object" && (function (global, factory) {
     var init = arguments.length > 0 ? arguments[0] : undefined;
     var that = this;
     var entries = [];
-    var iteratorMethod, iterator, step, entryIterator, first, second, key;
+    var iteratorMethod, iterator, next, step, entryIterator, entryNext, first, second, key;
 
     setInternalState$3(that, {
       type: URL_SEARCH_PARAMS,
@@ -2549,12 +2617,14 @@ typeof navigator === "object" && (function (global, factory) {
         iteratorMethod = getIteratorMethod(init);
         if (typeof iteratorMethod === 'function') {
           iterator = iteratorMethod.call(init);
-          while (!(step = iterator.next()).done) {
+          next = iterator.next;
+          while (!(step = next.call(iterator)).done) {
             entryIterator = getIterator(anObject(step.value));
+            entryNext = entryIterator.next;
             if (
-              (first = entryIterator.next()).done ||
-              (second = entryIterator.next()).done ||
-              !entryIterator.next().done
+              (first = entryNext.call(entryIterator)).done ||
+              (second = entryNext.call(entryIterator)).done ||
+              !entryNext.call(entryIterator).done
             ) throw TypeError('Expected sequence with length 2');
             entries.push({ key: first.value + '', value: second.value + '' });
           }
@@ -2718,6 +2788,34 @@ typeof navigator === "object" && (function (global, factory) {
   _export({ global: true, forced: !nativeUrl }, {
     URLSearchParams: URLSearchParamsConstructor
   });
+
+  // Wrap `fetch` for correct work with polyfilled `URLSearchParams`
+  // https://github.com/zloirock/core-js/issues/674
+  if (!nativeUrl && typeof $fetch == 'function' && typeof Headers == 'function') {
+    _export({ global: true, enumerable: true, forced: true }, {
+      fetch: function fetch(input /* , init */) {
+        var args = [input];
+        var init, body, headers;
+        if (arguments.length > 1) {
+          init = arguments[1];
+          if (isObject(init)) {
+            body = init.body;
+            if (classof(body) === URL_SEARCH_PARAMS) {
+              headers = init.headers ? new Headers(init.headers) : new Headers();
+              if (!headers.has('content-type')) {
+                headers.set('content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
+              }
+              init = objectCreate(init, {
+                body: createPropertyDescriptor(0, String(body)),
+                headers: createPropertyDescriptor(0, headers)
+              });
+            }
+          }
+          args.push(init);
+        } return $fetch.apply(this, args);
+      }
+    });
+  }
 
   var web_urlSearchParams = {
     URLSearchParams: URLSearchParamsConstructor,
@@ -2985,7 +3083,6 @@ typeof navigator === "object" && (function (global, factory) {
   var specialSchemes = {
     ftp: 21,
     file: null,
-    gopher: 70,
     http: 80,
     https: 443,
     ws: 80,
@@ -3808,6 +3905,10 @@ typeof navigator === "object" && (function (global, factory) {
   }
 
   function _iterableToArrayLimit(arr, i) {
+    if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
+      return;
+    }
+
     var _arr = [];
     var _n = true;
     var _d = false;
@@ -4015,7 +4116,16 @@ typeof navigator === "object" && (function (global, factory) {
       global.URLSearchParams = URLSearchParams;
     };
 
-    if (!('URLSearchParams' in global) || new global.URLSearchParams('?a=1').toString() !== 'a=1') {
+    var checkIfURLSearchParamsSupported = function checkIfURLSearchParamsSupported() {
+      try {
+        var URLSearchParams = global.URLSearchParams;
+        return new URLSearchParams('?a=1').toString() === 'a=1' && typeof URLSearchParams.prototype.set === 'function';
+      } catch (e) {
+        return false;
+      }
+    };
+
+    if (!checkIfURLSearchParamsSupported()) {
       polyfillURLSearchParams();
     }
 
@@ -4314,7 +4424,10 @@ typeof navigator === "object" && (function (global, factory) {
   var MAX_SAFE_INTEGER = 0x1FFFFFFFFFFFFF;
   var MAXIMUM_ALLOWED_INDEX_EXCEEDED = 'Maximum allowed index exceeded';
 
-  var IS_CONCAT_SPREADABLE_SUPPORT = !fails(function () {
+  // We can't use this feature detection in V8 since it causes
+  // deoptimization and serious performance degradation
+  // https://github.com/zloirock/core-js/issues/679
+  var IS_CONCAT_SPREADABLE_SUPPORT = v8Version >= 51 || !fails(function () {
     var array = [];
     array[IS_CONCAT_SPREADABLE] = false;
     return array.concat()[0] !== array;
@@ -4366,26 +4479,6 @@ typeof navigator === "object" && (function (global, factory) {
       return $filter(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
     }
   });
-
-  var $find = arrayIteration.find;
-
-
-  var FIND = 'find';
-  var SKIPS_HOLES = true;
-
-  // Shouldn't skip holes
-  if (FIND in []) Array(1)[FIND](function () { SKIPS_HOLES = false; });
-
-  // `Array.prototype.find` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.find
-  _export({ target: 'Array', proto: true, forced: SKIPS_HOLES }, {
-    find: function find(callbackfn /* , that = undefined */) {
-      return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
-    }
-  });
-
-  // https://tc39.github.io/ecma262/#sec-array.prototype-@@unscopables
-  addToUnscopables(FIND);
 
   var ITERATOR$7 = wellKnownSymbol('iterator');
   var SAFE_CLOSING = false;
@@ -4689,7 +4782,7 @@ typeof navigator === "object" && (function (global, factory) {
 
   var iterate = module.exports = function (iterable, fn, that, AS_ENTRIES, IS_ITERATOR) {
     var boundFunction = bindContext(fn, that, AS_ENTRIES ? 2 : 1);
-    var iterator, iterFn, index, length, result, step;
+    var iterator, iterFn, index, length, result, next, step;
 
     if (IS_ITERATOR) {
       iterator = iterable;
@@ -4708,9 +4801,10 @@ typeof navigator === "object" && (function (global, factory) {
       iterator = iterFn.call(iterable);
     }
 
-    while (!(step = iterator.next()).done) {
+    next = iterator.next;
+    while (!(step = next.call(iterator)).done) {
       result = callWithSafeIterationClosing(iterator, boundFunction, step.value, AS_ENTRIES);
-      if (result && result instanceof Result) return result;
+      if (typeof result == 'object' && result && result instanceof Result) return result;
     } return new Result(false);
   };
 
@@ -4729,17 +4823,17 @@ typeof navigator === "object" && (function (global, factory) {
     var fixMethod = function (KEY) {
       var nativeMethod = NativePrototype[KEY];
       redefine(NativePrototype, KEY,
-        KEY == 'add' ? function add(a) {
-          nativeMethod.call(this, a === 0 ? 0 : a);
+        KEY == 'add' ? function add(value) {
+          nativeMethod.call(this, value === 0 ? 0 : value);
           return this;
-        } : KEY == 'delete' ? function (a) {
-          return IS_WEAK && !isObject(a) ? false : nativeMethod.call(this, a === 0 ? 0 : a);
-        } : KEY == 'get' ? function get(a) {
-          return IS_WEAK && !isObject(a) ? undefined : nativeMethod.call(this, a === 0 ? 0 : a);
-        } : KEY == 'has' ? function has(a) {
-          return IS_WEAK && !isObject(a) ? false : nativeMethod.call(this, a === 0 ? 0 : a);
-        } : function set(a, b) {
-          nativeMethod.call(this, a === 0 ? 0 : a, b);
+        } : KEY == 'delete' ? function (key) {
+          return IS_WEAK && !isObject(key) ? false : nativeMethod.call(this, key === 0 ? 0 : key);
+        } : KEY == 'get' ? function get(key) {
+          return IS_WEAK && !isObject(key) ? undefined : nativeMethod.call(this, key === 0 ? 0 : key);
+        } : KEY == 'has' ? function has(key) {
+          return IS_WEAK && !isObject(key) ? false : nativeMethod.call(this, key === 0 ? 0 : key);
+        } : function set(key, value) {
+          nativeMethod.call(this, key === 0 ? 0 : key, value);
           return this;
         }
       );
@@ -4756,7 +4850,7 @@ typeof navigator === "object" && (function (global, factory) {
       var instance = new Constructor();
       // early implementations not supports chaining
       var HASNT_CHAINING = instance[ADDER](IS_WEAK ? {} : -0, 1) != instance;
-      // V8 ~  Chromium 40- weak-collections throws on primitives, but should return false
+      // V8 ~ Chromium 40- weak-collections throws on primitives, but should return false
       var THROWS_ON_PRIMITIVES = fails(function () { instance.has(1); });
       // most early implementations doesn't supports iterables, most modern - not close it correctly
       // eslint-disable-next-line no-new
@@ -4992,6 +5086,26 @@ typeof navigator === "object" && (function (global, factory) {
   }
   });
 
+  var $find = arrayIteration.find;
+
+
+  var FIND = 'find';
+  var SKIPS_HOLES = true;
+
+  // Shouldn't skip holes
+  if (FIND in []) Array(1)[FIND](function () { SKIPS_HOLES = false; });
+
+  // `Array.prototype.find` method
+  // https://tc39.github.io/ecma262/#sec-array.prototype.find
+  _export({ target: 'Array', proto: true, forced: SKIPS_HOLES }, {
+    find: function find(callbackfn /* , that = undefined */) {
+      return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+    }
+  });
+
+  // https://tc39.github.io/ecma262/#sec-array.prototype-@@unscopables
+  addToUnscopables(FIND);
+
   // `Object.assign` method
   // https://tc39.github.io/ecma262/#sec-object.assign
   _export({ target: 'Object', stat: true, forced: Object.assign !== objectAssign }, {
@@ -5225,7 +5339,7 @@ typeof navigator === "object" && (function (global, factory) {
       return Array.from(document.querySelectorAll(selector)).includes(this);
     }
 
-    var matches = match;
+    var matches =  match;
     return matches.call(element, selector);
   }
 
@@ -5571,6 +5685,8 @@ typeof navigator === "object" && (function (global, factory) {
     return RangeTouch;
   }();
 
+  var nativePromiseConstructor = global_1.Promise;
+
   var SPECIES$5 = wellKnownSymbol('species');
 
   var setSpecies = function (CONSTRUCTOR_NAME) {
@@ -5585,10 +5701,12 @@ typeof navigator === "object" && (function (global, factory) {
     }
   };
 
+  var isIos = /(iphone|ipod|ipad).*applewebkit/i.test(userAgent);
+
   var location = global_1.location;
   var set$1 = global_1.setImmediate;
   var clear = global_1.clearImmediate;
-  var process = global_1.process;
+  var process$1 = global_1.process;
   var MessageChannel = global_1.MessageChannel;
   var Dispatch = global_1.Dispatch;
   var counter = 0;
@@ -5637,9 +5755,9 @@ typeof navigator === "object" && (function (global, factory) {
       delete queue[id];
     };
     // Node.js 0.8-
-    if (classofRaw(process) == 'process') {
+    if (classofRaw(process$1) == 'process') {
       defer = function (id) {
-        process.nextTick(runner(id));
+        process$1.nextTick(runner(id));
       };
     // Sphere (JS game engine) Dispatch API
     } else if (Dispatch && Dispatch.now) {
@@ -5647,7 +5765,8 @@ typeof navigator === "object" && (function (global, factory) {
         Dispatch.now(runner(id));
       };
     // Browsers with MessageChannel, includes WebWorkers
-    } else if (MessageChannel) {
+    // except iOS - https://github.com/zloirock/core-js/issues/624
+    } else if (MessageChannel && !isIos) {
       channel = new MessageChannel();
       port = channel.port2;
       channel.port1.onmessage = listener;
@@ -5678,28 +5797,26 @@ typeof navigator === "object" && (function (global, factory) {
     clear: clear
   };
 
-  var userAgent = getBuiltIn('navigator', 'userAgent') || '';
-
   var getOwnPropertyDescriptor$3 = objectGetOwnPropertyDescriptor.f;
 
   var macrotask = task.set;
 
 
   var MutationObserver$1 = global_1.MutationObserver || global_1.WebKitMutationObserver;
-  var process$1 = global_1.process;
+  var process$2 = global_1.process;
   var Promise$1 = global_1.Promise;
-  var IS_NODE = classofRaw(process$1) == 'process';
+  var IS_NODE = classofRaw(process$2) == 'process';
   // Node.js 11 shows ExperimentalWarning on getting `queueMicrotask`
   var queueMicrotaskDescriptor = getOwnPropertyDescriptor$3(global_1, 'queueMicrotask');
   var queueMicrotask = queueMicrotaskDescriptor && queueMicrotaskDescriptor.value;
 
-  var flush, head, last, notify, toggle, node, promise;
+  var flush, head, last, notify, toggle, node, promise, then;
 
   // modern engines have queueMicrotask method
   if (!queueMicrotask) {
     flush = function () {
       var parent, fn;
-      if (IS_NODE && (parent = process$1.domain)) parent.exit();
+      if (IS_NODE && (parent = process$2.domain)) parent.exit();
       while (head) {
         fn = head.fn;
         head = head.next;
@@ -5717,13 +5834,13 @@ typeof navigator === "object" && (function (global, factory) {
     // Node.js
     if (IS_NODE) {
       notify = function () {
-        process$1.nextTick(flush);
+        process$2.nextTick(flush);
       };
     // browsers with MutationObserver, except iOS - https://github.com/zloirock/core-js/issues/339
-    } else if (MutationObserver$1 && !/(iphone|ipod|ipad).*applewebkit/i.test(userAgent)) {
+    } else if (MutationObserver$1 && !isIos) {
       toggle = true;
       node = document.createTextNode('');
-      new MutationObserver$1(flush).observe(node, { characterData: true }); // eslint-disable-line no-new
+      new MutationObserver$1(flush).observe(node, { characterData: true });
       notify = function () {
         node.data = toggle = !toggle;
       };
@@ -5731,8 +5848,9 @@ typeof navigator === "object" && (function (global, factory) {
     } else if (Promise$1 && Promise$1.resolve) {
       // Promise.resolve without an argument throws an error in LG WebOS 2
       promise = Promise$1.resolve(undefined);
+      then = promise.then;
       notify = function () {
-        promise.then(flush);
+        then.call(promise, flush);
       };
     // for other environments - macrotask based on:
     // - setImmediate
@@ -5817,16 +5935,15 @@ typeof navigator === "object" && (function (global, factory) {
   var getInternalState$3 = internalState.get;
   var setInternalState$6 = internalState.set;
   var getInternalPromiseState = internalState.getterFor(PROMISE);
-  var PromiseConstructor = global_1[PROMISE];
+  var PromiseConstructor = nativePromiseConstructor;
   var TypeError$1 = global_1.TypeError;
   var document$2 = global_1.document;
-  var process$2 = global_1.process;
-  var $fetch = global_1.fetch;
-  var versions = process$2 && process$2.versions;
-  var v8 = versions && versions.v8 || '';
+  var process$3 = global_1.process;
+  var inspectSource = shared('inspectSource');
+  var $fetch$1 = getBuiltIn('fetch');
   var newPromiseCapability$1 = newPromiseCapability.f;
   var newGenericPromiseCapability = newPromiseCapability$1;
-  var IS_NODE$1 = classofRaw(process$2) == 'process';
+  var IS_NODE$1 = classofRaw(process$3) == 'process';
   var DISPATCH_EVENT = !!(document$2 && document$2.createEvent && global_1.dispatchEvent);
   var UNHANDLED_REJECTION = 'unhandledrejection';
   var REJECTION_HANDLED = 'rejectionhandled';
@@ -5835,24 +5952,30 @@ typeof navigator === "object" && (function (global, factory) {
   var REJECTED = 2;
   var HANDLED = 1;
   var UNHANDLED = 2;
-  var Internal, OwnPromiseCapability, PromiseWrapper;
+  var Internal, OwnPromiseCapability, PromiseWrapper, nativeThen;
 
   var FORCED$2 = isForced_1(PROMISE, function () {
-    // correct subclassing with @@species support
-    var promise = PromiseConstructor.resolve(1);
-    var empty = function () { /* empty */ };
-    var FakePromise = (promise.constructor = {})[SPECIES$6] = function (exec) {
-      exec(empty, empty);
-    };
-    // unhandled rejections tracking support, NodeJS Promise without it fails @@species test
-    return !((IS_NODE$1 || typeof PromiseRejectionEvent == 'function')
-      && (!isPure || promise['finally'])
-      && promise.then(empty) instanceof FakePromise
-      // v8 6.6 (Node 10 and Chrome 66) have a bug with resolving custom thenables
+    var GLOBAL_CORE_JS_PROMISE = inspectSource(PromiseConstructor) !== String(PromiseConstructor);
+    if (!GLOBAL_CORE_JS_PROMISE) {
+      // V8 6.6 (Node 10 and Chrome 66) have a bug with resolving custom thenables
       // https://bugs.chromium.org/p/chromium/issues/detail?id=830565
-      // we can't detect it synchronously, so just check versions
-      && v8.indexOf('6.6') !== 0
-      && userAgent.indexOf('Chrome/66') === -1);
+      // We can't detect it synchronously, so just check versions
+      if (v8Version === 66) return true;
+      // Unhandled rejections tracking support, NodeJS Promise without it fails @@species test
+      if (!IS_NODE$1 && typeof PromiseRejectionEvent != 'function') return true;
+    }
+    // We can't use @@species feature detection in V8 since it causes
+    // deoptimization and performance degradation
+    // https://github.com/zloirock/core-js/issues/679
+    if (v8Version >= 51 && /native code/.test(PromiseConstructor)) return false;
+    // Detect correctness of subclassing with @@species support
+    var promise = PromiseConstructor.resolve(1);
+    var FakePromise = function (exec) {
+      exec(function () { /* empty */ }, function () { /* empty */ });
+    };
+    var constructor = promise.constructor = {};
+    constructor[SPECIES$6] = FakePromise;
+    return !(promise.then(function () { /* empty */ }) instanceof FakePromise);
   });
 
   var INCORRECT_ITERATION$1 = FORCED$2 || !checkCorrectnessOfIteration(function (iterable) {
@@ -5934,7 +6057,7 @@ typeof navigator === "object" && (function (global, factory) {
       if (IS_UNHANDLED) {
         result = perform(function () {
           if (IS_NODE$1) {
-            process$2.emit('unhandledRejection', value, promise);
+            process$3.emit('unhandledRejection', value, promise);
           } else dispatchEvent(UNHANDLED_REJECTION, promise, value);
         });
         // Browsers should not trigger `rejectionHandled` event if it was handled here, NodeJS - should
@@ -5951,7 +6074,7 @@ typeof navigator === "object" && (function (global, factory) {
   var onHandleUnhandled = function (promise, state) {
     task$1.call(global_1, function () {
       if (IS_NODE$1) {
-        process$2.emit('rejectionHandled', promise);
+        process$3.emit('rejectionHandled', promise);
       } else dispatchEvent(REJECTION_HANDLED, promise, state.value);
     });
   };
@@ -6035,7 +6158,7 @@ typeof navigator === "object" && (function (global, factory) {
         var reaction = newPromiseCapability$1(speciesConstructor(this, PromiseConstructor));
         reaction.ok = typeof onFulfilled == 'function' ? onFulfilled : true;
         reaction.fail = typeof onRejected == 'function' && onRejected;
-        reaction.domain = IS_NODE$1 ? process$2.domain : undefined;
+        reaction.domain = IS_NODE$1 ? process$3.domain : undefined;
         state.parent = true;
         state.reactions.push(reaction);
         if (state.state != PENDING) notify$1(this, state, false);
@@ -6060,13 +6183,26 @@ typeof navigator === "object" && (function (global, factory) {
         : newGenericPromiseCapability(C);
     };
 
-    // wrap fetch result
-    if (typeof $fetch == 'function') _export({ global: true, enumerable: true, forced: true }, {
-      // eslint-disable-next-line no-unused-vars
-      fetch: function fetch(input) {
-        return promiseResolve(PromiseConstructor, $fetch.apply(global_1, arguments));
-      }
-    });
+    if ( typeof nativePromiseConstructor == 'function') {
+      nativeThen = nativePromiseConstructor.prototype.then;
+
+      // wrap native Promise#then for native async functions
+      redefine(nativePromiseConstructor.prototype, 'then', function then(onFulfilled, onRejected) {
+        var that = this;
+        return new PromiseConstructor(function (resolve, reject) {
+          nativeThen.call(that, resolve, reject);
+        }).then(onFulfilled, onRejected);
+      // https://github.com/zloirock/core-js/issues/640
+      }, { unsafe: true });
+
+      // wrap fetch result
+      if (typeof $fetch$1 == 'function') _export({ global: true, enumerable: true, forced: true }, {
+        // eslint-disable-next-line no-unused-vars
+        fetch: function fetch(input /* , init */) {
+          return promiseResolve(PromiseConstructor, $fetch$1.apply(global_1, arguments));
+        }
+      });
+    }
   }
 
   _export({ global: true, wrap: true, forced: FORCED$2 }, {
@@ -6076,7 +6212,7 @@ typeof navigator === "object" && (function (global, factory) {
   setToStringTag(PromiseConstructor, PROMISE, false);
   setSpecies(PROMISE);
 
-  PromiseWrapper = path[PROMISE];
+  PromiseWrapper = getBuiltIn(PROMISE);
 
   // statics
   _export({ target: PROMISE, stat: true, forced: FORCED$2 }, {
@@ -6089,11 +6225,11 @@ typeof navigator === "object" && (function (global, factory) {
     }
   });
 
-  _export({ target: PROMISE, stat: true, forced: FORCED$2 }, {
+  _export({ target: PROMISE, stat: true, forced:  FORCED$2 }, {
     // `Promise.resolve` method
     // https://tc39.github.io/ecma262/#sec-promise.resolve
     resolve: function resolve(x) {
-      return promiseResolve(this, x);
+      return promiseResolve( this, x);
     }
   });
 
@@ -6321,12 +6457,27 @@ typeof navigator === "object" && (function (global, factory) {
   var browser = {
     isIE:
     /* @cc_on!@ */
-    !!document.documentMode,
+     !!document.documentMode,
     isEdge: window.navigator.userAgent.includes('Edge'),
     isWebkit: 'WebkitAppearance' in document.documentElement.style && !/Edge/.test(navigator.userAgent),
     isIPhone: /(iPhone|iPod)/gi.test(navigator.platform),
     isIos: /(iPad|iPhone|iPod)/gi.test(navigator.platform)
   };
+
+  var nativeReverse = [].reverse;
+  var test$1 = [1, 2];
+
+  // `Array.prototype.reverse` method
+  // https://tc39.github.io/ecma262/#sec-array.prototype.reverse
+  // fix for Safari 12.0 bug
+  // https://bugs.webkit.org/show_bug.cgi?id=188794
+  _export({ target: 'Array', proto: true, forced: String(test$1) === String(test$1.reverse()) }, {
+    reverse: function reverse() {
+      // eslint-disable-next-line no-self-assign
+      if (isArray(this)) this.length = this.length;
+      return nativeReverse.call(this);
+    }
+  });
 
   // https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
   // https://www.youtube.com/watch?v=NPM6172J22g
@@ -6673,9 +6824,6 @@ typeof navigator === "object" && (function (global, factory) {
           // Attribute selector
           attributes[key] = value;
           break;
-
-        default:
-          break;
       }
     });
     return extend(existing, attributes);
@@ -6727,7 +6875,7 @@ typeof navigator === "object" && (function (global, factory) {
       return Array.from(document.querySelectorAll(selector)).includes(this);
     }
 
-    var method = match;
+    var method =  match;
     return method.call(element, selector);
   } // Find all elements
 
@@ -6994,7 +7142,7 @@ typeof navigator === "object" && (function (global, factory) {
     getQualityOptions: function getQualityOptions() {
       // Get sizes from <source> elements
       return html5.getSources.call(this).map(function (source) {
-        return Number(source.getAttribute('size'));
+        return source.getAttribute('size');
       }).filter(Boolean);
     },
     extend: function extend() {
@@ -7017,14 +7165,14 @@ typeof navigator === "object" && (function (global, factory) {
             return s.getAttribute('src') === player.source;
           }); // Return size, if match is found
 
-          return source && Number(source.getAttribute('size'));
+          return source && source.getAttribute('size');
         },
         set: function set(input) {
           // Get sources
           var sources = html5.getSources.call(player); // Get first match for requested size
 
           var source = sources.find(function (s) {
-            return Number(s.getAttribute('size')) === input;
+            return s.getAttribute('size') === input;
           }); // No matching source found
 
           if (!source) {
@@ -7923,9 +8071,6 @@ typeof navigator === "object" && (function (global, factory) {
           case 'speed':
             _this3.speed = parseFloat(value);
             break;
-
-          default:
-            break;
         }
 
         controls.showMenuPanel.call(_this3, 'home', is$1.keyboardEvent(event));
@@ -8033,9 +8178,6 @@ typeof navigator === "object" && (function (global, factory) {
           case 'playing':
           case 'progress':
             setProgress(this.elements.display.buffer, this.buffered * 100);
-            break;
-
-          default:
             break;
         }
       }
@@ -8314,19 +8456,19 @@ typeof navigator === "object" && (function (global, factory) {
         if (!is.element(this.elements.settings.panels.loop)) {
             return;
         }
-         const options = ['start', 'end', 'all', 'reset'];
+          const options = ['start', 'end', 'all', 'reset'];
         const list = this.elements.settings.panels.loop.querySelector('[role="menu"]');
-         // Show the pane and tab
+          // Show the pane and tab
         toggleHidden(this.elements.settings.buttons.loop, false);
         toggleHidden(this.elements.settings.panels.loop, false);
-         // Toggle the pane and tab
+          // Toggle the pane and tab
         const toggle = !is.empty(this.loop.options);
         controls.toggleMenuButton.call(this, 'loop', toggle);
-         // Empty the menu
+          // Empty the menu
         emptyElement(list);
-         options.forEach(option => {
+          options.forEach(option => {
             const item = createElement('li');
-             const button = createElement(
+              const button = createElement(
                 'button',
                 extend(getAttributesFromSelector(this.config.selectors.buttons.loop), {
                     type: 'button',
@@ -8335,11 +8477,11 @@ typeof navigator === "object" && (function (global, factory) {
                 }),
                 i18n.get(option, this.config)
             );
-             if (['start', 'end'].includes(option)) {
+              if (['start', 'end'].includes(option)) {
                 const badge = controls.createBadge.call(this, '00:00');
                 button.appendChild(badge);
             }
-             item.appendChild(button);
+              item.appendChild(button);
             list.appendChild(item);
         });
     }, */
@@ -10472,19 +10614,6 @@ typeof navigator === "object" && (function (global, factory) {
               // L key
               player.loop = !player.loop;
               break;
-
-            /* case 73:
-                this.setLoop('start');
-                break;
-             case 76:
-                this.setLoop();
-                break;
-             case 79:
-                this.setLoop('end');
-                break; */
-
-            default:
-              break;
           } // Escape is handle natively when in full screen
           // So we only need to worry about non native
 
@@ -12207,9 +12336,6 @@ typeof navigator === "object" && (function (global, factory) {
 
                 assurePlaybackState$1.call(player, false);
                 break;
-
-              default:
-                break;
             }
 
             triggerEvent.call(player, player.elements.container, 'statechange', false, {
@@ -12621,9 +12747,6 @@ typeof navigator === "object" && (function (global, factory) {
               this.player.debug.warn("Non-fatal ad error: ".concat(adData.adError.getMessage()));
             }
 
-            break;
-
-          default:
             break;
         }
       }
@@ -14686,7 +14809,7 @@ typeof navigator === "object" && (function (global, factory) {
       /**
        * Set playback quality
        * Currently HTML5 & YouTube only
-       * @param {Number} input - Quality level
+       * @param {String} input - Quality level
        */
 
     }, {
@@ -14699,7 +14822,7 @@ typeof navigator === "object" && (function (global, factory) {
           return;
         }
 
-        var quality = [!is$1.empty(input) && Number(input), this.storage.get('quality'), config.selected, config.default].find(is$1.number);
+        var quality = input || config.default;
         var updateStorage = true;
 
         if (!options.includes(quality)) {
@@ -14742,7 +14865,7 @@ typeof navigator === "object" && (function (global, factory) {
         this.media.loop = toggle; // Set default to be a true toggle
 
         /* const type = ['start', 'end', 'all', 'none', 'toggle'].includes(input) ? input : 'toggle';
-         switch (type) {
+          switch (type) {
             case 'start':
                 if (this.config.loop.end && this.config.loop.end <= this.currentTime) {
                     this.config.loop.end = null;
@@ -14750,20 +14873,20 @@ typeof navigator === "object" && (function (global, factory) {
                 this.config.loop.start = this.currentTime;
                 // this.config.loop.indicator.start = this.elements.display.played.value;
                 break;
-             case 'end':
+              case 'end':
                 if (this.config.loop.start >= this.currentTime) {
                     return this;
                 }
                 this.config.loop.end = this.currentTime;
                 // this.config.loop.indicator.end = this.elements.display.played.value;
                 break;
-             case 'all':
+              case 'all':
                 this.config.loop.start = 0;
                 this.config.loop.end = this.duration - 2;
                 this.config.loop.indicator.start = 0;
                 this.config.loop.indicator.end = 100;
                 break;
-             case 'toggle':
+              case 'toggle':
                 if (this.config.loop.active) {
                     this.config.loop.start = 0;
                     this.config.loop.end = null;
@@ -14772,7 +14895,7 @@ typeof navigator === "object" && (function (global, factory) {
                     this.config.loop.end = this.duration - 2;
                 }
                 break;
-             default:
+              default:
                 this.config.loop.start = 0;
                 this.config.loop.end = null;
                 break;
@@ -15036,4 +15159,4 @@ typeof navigator === "object" && (function (global, factory) {
 
   return Plyr;
 
-}));
+})));
