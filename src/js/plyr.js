@@ -719,7 +719,7 @@ class Plyr {
     /**
      * Set playback quality
      * Currently HTML5 & YouTube only
-     * @param {Number} input - Quality level
+     * @param {String} input - Quality level
      */
     set quality(input) {
         const config = this.config.quality;
@@ -729,12 +729,7 @@ class Plyr {
             return;
         }
 
-        let quality = [
-            !is.empty(input) && Number(input),
-            this.storage.get('quality'),
-            config.selected,
-            config.default,
-        ].find(is.number);
+        let quality = input || config.default
 
         let updateStorage = true;
 
